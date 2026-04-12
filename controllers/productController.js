@@ -208,7 +208,7 @@ export const fetchAllProducts = catchAsyncErrors(async (req, res, next) => {
 
 export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   const { productId } = req.params;
-  const { name, description, price, category, stock, existingImages, newImages } = req.body;
+  const { name, description, price, category, stock } = req.body;
 
   if (!name || !description || !price || !category || !stock) {
     return next(new ErrorHandler("Please provide complete product details.", 400));
@@ -225,28 +225,64 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   }
 
   const oldProduct = productRes.rows[0];
+
+  // ✅ parse existing images (jo rakhni hai)
+  const existingImages = req.body.existingImages
+    ? JSON.parse(req.body.existingImages)
+    : [];
+
+  // ❌ delete removed images from cloudinary
   const oldImages = oldProduct.images || [];
 
-  // 🧹 Step 1: Keep only selected old images
-  const filteredOldImages = existingImages || [];
+  for (const img of oldImages) {
+    const isStillExist = existingImages.find(
+      (i) => i.public_id === img.public_id
+    );
 
-  // ➕ Step 2: Add new images
-  let uploadedImages = [];
-
-  if (newImages && newImages.length > 0) {
-    // 👇 yaha tum cloudinary / local upload laga sakte ho
-    uploadedImages = newImages; 
+    if (!isStillExist) {
+      await cloudinary.uploader.destroy(img.public_id);
+    }
   }
 
-  // 📦 Final images array
-  const finalImages = [...filteredOldImages, ...uploadedImages];
+  // ➕ upload new images (CREATE JAISE SAME)
+  let uploadedImages = [];
 
-  // 🔥 Update DB
+  if (req.files && req.files.newImages) {
+    const images = Array.isArray(req.files.newImages)
+      ? req.files.newImages
+      : [req.files.newImages];
+
+    for (const image of images) {
+      const result = await cloudinary.uploader.upload(image.tempFilePath, {
+        folder: "Ecommerce_Product_Images",
+        width: 1000,
+        crop: "scale",
+      });
+
+      uploadedImages.push({
+        url: result.secure_url,
+        public_id: result.public_id,
+      });
+    }
+  }
+
+  // 📦 final images
+  const finalImages = [...existingImages, ...uploadedImages];
+
+  // 🔥 update DB
   const result = await database.query(
     `UPDATE products 
      SET name = $1, description = $2, price = $3, category = $4, stock = $5, images = $6 
      WHERE id = $7 RETURNING *`,
-    [name, description, price, category, stock, JSON.stringify(finalImages), productId]
+    [
+      name,
+      description,
+      price,
+      category,
+      stock,
+      JSON.stringify(finalImages),
+      productId,
+    ]
   );
 
   res.status(200).json({
