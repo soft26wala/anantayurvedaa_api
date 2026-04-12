@@ -178,31 +178,86 @@ export const fetchAllProducts = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
+// export const updateProduct = catchAsyncErrors(async (req, res, next) => {
+//   const { productId } = req.params;
+//   const { name, description, price, category, stock } = req.body;
+
+//   if (!name || !description || !price || !category || !stock) {
+//     return next(
+//       new ErrorHandler("Please provide complete product details.", 400)
+//     );
+//   }
+//   const product = await database.query("SELECT * FROM products WHERE id = $1", [
+//     productId,
+//   ]);
+//   if (product.rows.length === 0) {
+//     return next(new ErrorHandler("Product not found.", 404));
+//   }
+//   const result = await database.query(
+//     `UPDATE products SET name = $1, description = $2, price = $3, category = $4, stock = $5 WHERE id = $6 RETURNING *`,
+//     [name, description, price, category, stock, productId]
+//   );
+//   res.status(200).json({
+//     success: true,
+//     message: "Product updated successfully.",
+//     updatedProduct: result.rows[0],
+//   });
+// });
+
+
+
 export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   const { productId } = req.params;
-  const { name, description, price, category, stock } = req.body;
+  const { name, description, price, category, stock, existingImages, newImages } = req.body;
 
   if (!name || !description || !price || !category || !stock) {
-    return next(
-      new ErrorHandler("Please provide complete product details.", 400)
-    );
+    return next(new ErrorHandler("Please provide complete product details.", 400));
   }
-  const product = await database.query("SELECT * FROM products WHERE id = $1", [
-    productId,
-  ]);
-  if (product.rows.length === 0) {
+
+  // 🔍 Get old product
+  const productRes = await database.query(
+    "SELECT * FROM products WHERE id = $1",
+    [productId]
+  );
+
+  if (productRes.rows.length === 0) {
     return next(new ErrorHandler("Product not found.", 404));
   }
+
+  const oldProduct = productRes.rows[0];
+  const oldImages = oldProduct.images || [];
+
+  // 🧹 Step 1: Keep only selected old images
+  const filteredOldImages = existingImages || [];
+
+  // ➕ Step 2: Add new images
+  let uploadedImages = [];
+
+  if (newImages && newImages.length > 0) {
+    // 👇 yaha tum cloudinary / local upload laga sakte ho
+    uploadedImages = newImages; 
+  }
+
+  // 📦 Final images array
+  const finalImages = [...filteredOldImages, ...uploadedImages];
+
+  // 🔥 Update DB
   const result = await database.query(
-    `UPDATE products SET name = $1, description = $2, price = $3, category = $4, stock = $5 WHERE id = $6 RETURNING *`,
-    [name, description, price, category, stock, productId]
+    `UPDATE products 
+     SET name = $1, description = $2, price = $3, category = $4, stock = $5, images = $6 
+     WHERE id = $7 RETURNING *`,
+    [name, description, price, category, stock, JSON.stringify(finalImages), productId]
   );
+
   res.status(200).json({
     success: true,
     message: "Product updated successfully.",
     updatedProduct: result.rows[0],
   });
 });
+
+
+
 
 export const deleteProduct = catchAsyncErrors(async (req, res, next) => {
   const { productId } = req.params;
