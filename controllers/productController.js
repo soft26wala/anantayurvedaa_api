@@ -208,7 +208,7 @@ export const fetchAllProducts = catchAsyncErrors(async (req, res, next) => {
 
 export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   const { productId } = req.params;
-  const { name, description, price, category, stock } = req.body;
+  const { name, description, price, category, stock , mrp} = req.body;
 
   if (!name || !description || !price || !category || !stock) {
     return next(new ErrorHandler("Please provide complete product details.", 400));
@@ -272,8 +272,8 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   // 🔥 update DB
   const result = await database.query(
     `UPDATE products 
-     SET name = $1, description = $2, price = $3, category = $4, stock = $5, images = $6 
-     WHERE id = $7 RETURNING *`,
+     SET name = $1, description = $2, price = $3, category = $4, stock = $5, images = $6 , mrp = $7
+     WHERE id = $8 RETURNING *`,
     [
       name,
       description,
@@ -281,6 +281,7 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
       category,
       stock,
       JSON.stringify(finalImages),
+      mrp,
       productId,
     ]
   );
