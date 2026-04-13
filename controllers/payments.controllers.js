@@ -138,32 +138,6 @@ const orderId = orderResult.rows[0].id;
 
 
 
-
-
-await db.query(
-  `INSERT INTO shipping_info 
-  (order_id, full_name, state, city, country, address, pincode, phone) 
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-  [
-    orderId,
-    formData.fullName,
-    formData.state,
-    formData.city,
-    formData.country,
-    formData.address,
-    formData.zipCode,
-    formData.phone
-  ]
-);
-
-
-await db.query(
-  `INSERT INTO payments (order_id, payment_type, payment_status, payment_intent_id)
-   VALUES ($1, 'Online', 'Paid', $2)`,
-  [orderId, razorpay_payment_id]
-);
-
-
 for (let item of items) {
   const product = await db.query(
     "SELECT name, price, image FROM products WHERE id = $1",
@@ -190,6 +164,34 @@ for (let item of items) {
     ]
   );
 }
+
+
+
+await db.query(
+  `INSERT INTO shipping_info 
+  (order_id, full_name, state, city, country, address, pincode, phone) 
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+  [
+    orderId,
+    formData.fullName,
+    formData.state,
+    formData.city,
+    formData.country,
+    formData.address,
+    formData.zipCode,
+    formData.phone
+  ]
+);
+
+
+await db.query(
+  `INSERT INTO payments (order_id, payment_type, payment_status, payment_intent_id)
+   VALUES ($1, 'Online', 'Paid', $2)`,
+  [orderId, razorpay_payment_id]
+);
+
+
+
 
     return res.status(200).json({
       success: true,
