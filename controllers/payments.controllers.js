@@ -138,30 +138,6 @@ const orderId = orderResult.rows[0].id;
 
 
 
-for (let item of items) {
-  // product detail fetch (secure)
-  const product = await db.query(
-    "SELECT name, price, image FROM products WHERE id = $1",
-    [item.productId]
-  );
-
-  const productData = product.rows[0];
-
-  await db.query(
-    `INSERT INTO order_items 
-    (order_id, product_id, quantity, price, image, title)
-    VALUES ($1, $2, $3, $4, $5, $6)`,
-    [
-      orderId,
-      item.productId,
-      item.qty,
-      productData.price,
-      productData.image || null,
-      productData.name || "Product",
-    ]
-  );
-}
-
 
 
 await db.query(
@@ -186,6 +162,34 @@ await db.query(
    VALUES ($1, 'Online', 'Paid', $2)`,
   [orderId, razorpay_payment_id]
 );
+
+
+for (let item of items) {
+  const product = await db.query(
+    "SELECT name, price, image FROM products WHERE id = $1",
+    [item.productId]
+  );
+
+  if (!product.rows.length) {
+    throw new Error("Product not found in verifyPayment");
+  }
+
+  const productData = product.rows[0];
+
+  await db.query(
+    `INSERT INTO order_items 
+    (order_id, product_id, quantity, price, image, title)
+    VALUES ($1, $2, $3, $4, $5, $6)`,
+    [
+      orderId,
+      item.productId,
+      item.qty,
+      productData.price,
+      productData.image || null,
+      productData.name || "Product",
+    ]
+  );
+}
 
     return res.status(200).json({
       success: true,
