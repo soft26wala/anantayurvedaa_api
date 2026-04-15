@@ -139,10 +139,10 @@ const orderId = orderResult.rows[0].id;
 
 
 for (let item of items) {
-  const product = await db.query(
-    "SELECT name, price, image FROM products WHERE id = $1",
-    [item.productId]
-  );
+const product = await db.query(
+  "SELECT name, price, images->0->>'url' AS image FROM products WHERE id = $1",
+  [item.productId]
+);
 
   if (!product.rows.length) {
     throw new Error("Product not found in verifyPayment");
@@ -199,11 +199,9 @@ await db.query(
       message: "Payment verified & order saved",
     });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Verification failed",
-    });
-  }
+  } 
+   catch (error) {
+  console.error("verifyPayment failed at step:", error.message, error.stack);
+  res.status(500).json({ success: false, message: "Verification failed" });
+}
 };
