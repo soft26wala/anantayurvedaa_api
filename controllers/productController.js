@@ -294,6 +294,34 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
 });
 
 
+export const updateHowToUse = catchAsyncErrors(async (req, res, next) => {
+  const { productId } = req.params;
+
+  let steps = req.body.steps;
+
+  // agar string me aaya (form-data)
+  if (typeof steps === "string") {
+    steps = JSON.parse(steps);
+  }
+
+  if (!steps || !Array.isArray(steps)) {
+    return next(new ErrorHandler("Invalid steps data", 400));
+  }
+
+  // 🔥 update only how_to_use
+  const result = await database.query(
+    `UPDATE products 
+     SET how_to_use = $1
+     WHERE id = $2 RETURNING *`,
+    [JSON.stringify(steps), productId]
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "How To Use updated successfully",
+    product: result.rows[0],
+  });
+});
 
 
 export const deleteProduct = catchAsyncErrors(async (req, res, next) => {
