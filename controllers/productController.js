@@ -294,12 +294,43 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
 });
 
 
+// export const updateHowToUse = catchAsyncErrors(async (req, res, next) => {
+//   const { productId } = req.params;
+
+//   let steps = req.body.steps;
+
+//   // agar string me aaya (form-data)
+//   if (typeof steps === "string") {
+//     steps = JSON.parse(steps);
+//   }
+
+//   if (!steps || !Array.isArray(steps)) {
+//     return next(new ErrorHandler("Invalid steps data", 400));
+//   }
+
+//   // 🔥 update only how_to_use
+//   const result = await database.query(
+//     `UPDATE products 
+//      SET how_to_use = $1
+//      WHERE id = $2 RETURNING *`,
+//     [JSON.stringify(steps), productId]
+//   );
+
+//   res.status(200).json({
+//     success: true,
+//     message: "How To Use updated successfully",
+//     product: result.rows[0],
+//   });
+// });
+
+
+
 export const updateHowToUse = catchAsyncErrors(async (req, res, next) => {
   const { productId } = req.params;
 
   let steps = req.body.steps;
 
-  // agar string me aaya (form-data)
+  // string parse
   if (typeof steps === "string") {
     steps = JSON.parse(steps);
   }
@@ -308,12 +339,42 @@ export const updateHowToUse = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid steps data", 400));
   }
 
-  // 🔥 update only how_to_use
+  // 📸 uploaded images
+  let uploadedImages = [];
+
+  if (req.files && req.files.stepImages) {
+    const files = Array.isArray(req.files.stepImages)
+      ? req.files.stepImages
+      : [req.files.stepImages];
+
+    for (const file of files) {
+      const result = await cloudinary.uploader.upload(file.tempFilePath, {
+        folder: "how_to_use_steps",
+      });
+
+      uploadedImages.push(result.secure_url);
+    }
+  }
+
+  // 🔥 replace __file_ index with uploaded image
+  let imgIndex = 0;
+
+  const finalSteps = steps.map((step) => {
+    if (step.img && step.img.startsWith("__file_")) {
+      return {
+        ...step,
+        img: uploadedImages[imgIndex++] || "",
+      };
+    }
+    return step;
+  });
+
+  // 💾 save to DB
   const result = await database.query(
     `UPDATE products 
      SET how_to_use = $1
      WHERE id = $2 RETURNING *`,
-    [JSON.stringify(steps), productId]
+    [JSON.stringify(finalSteps), productId]
   );
 
   res.status(200).json({
