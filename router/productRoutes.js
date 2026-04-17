@@ -8,6 +8,7 @@ import {
   postProductReview,
   deleteReview,
   fetchAIFilteredProducts,
+  updateHowToUse,
 } from "../controllers/productController.js";
 import {
   authorizedRoles,
@@ -32,6 +33,14 @@ router.put(
   authorizedRoles("Admin"),
   updateProduct
 );
+
+router.put(
+  "/admin/how-to-use/:productId",
+  isAuthenticated,
+  authorizedRoles("Admin"),
+  updateHowToUse
+);
+
 router.delete(
   "/admin/delete/:productId",
   isAuthenticated,
