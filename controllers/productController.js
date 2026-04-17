@@ -330,7 +330,6 @@ export const updateHowToUse = catchAsyncErrors(async (req, res, next) => {
 
   let steps = req.body.steps;
 
-  // string parse
   if (typeof steps === "string") {
     steps = JSON.parse(steps);
   }
@@ -339,37 +338,41 @@ export const updateHowToUse = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid steps data", 400));
   }
 
-  // 📸 uploaded images
   let uploadedImages = [];
 
+  // 🔥 SAME LOGIC as createProduct
   if (req.files && req.files.stepImages) {
-    const files = Array.isArray(req.files.stepImages)
+    const images = Array.isArray(req.files.stepImages)
       ? req.files.stepImages
       : [req.files.stepImages];
 
-    for (const file of files) {
-      const result = await cloudinary.uploader.upload(file.tempFilePath, {
-        folder: "how_to_use_steps",
+    for (const image of images) {
+      const result = await cloudinary.uploader.upload(image.tempFilePath, {
+        folder: "HowToUse_Images",
+        width: 800,
+        crop: "scale",
       });
 
-      uploadedImages.push(result.secure_url);
+      uploadedImages.push({
+        url: result.secure_url,
+        public_id: result.public_id,
+      });
     }
   }
 
-  // 🔥 replace __file_ index with uploaded image
+  // 🔥 replace placeholders
   let imgIndex = 0;
 
   const finalSteps = steps.map((step) => {
     if (step.img && step.img.startsWith("__file_")) {
       return {
         ...step,
-        img: uploadedImages[imgIndex++] || "",
+        img: uploadedImages[imgIndex++]?.url || "",
       };
     }
     return step;
   });
 
-  // 💾 save to DB
   const result = await database.query(
     `UPDATE products 
      SET how_to_use = $1
