@@ -197,7 +197,7 @@ json_build_object(
  'address', s.address,
  'pincode', s.pincode,
  'phone', s.phone
- ) AS shipping_info 
+ ) AS shipping_info,
    p.payment_type,
   p.payment_status
  FROM orders o
