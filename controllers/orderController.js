@@ -176,7 +176,7 @@ GROUP BY o.id, s.id;
 export const fetchMyOrders = catchAsyncErrors(async (req, res, next) => {
   const result = await database.query(
     `
-        SELECT 
+  SELECT 
   o.*, 
 
   COALESCE(
@@ -212,7 +212,6 @@ LEFT JOIN order_items oi ON o.id = oi.order_id
 LEFT JOIN shipping_info s ON o.id = s.order_id
 LEFT JOIN payments p ON o.id = p.order_id
 
--- ✅ FIX HERE
 WHERE o.buyer_id = $1
 
 GROUP BY o.id, s.id, p.payment_type, p.payment_status
