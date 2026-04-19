@@ -201,6 +201,7 @@ json_build_object(
  FROM orders o
  LEFT JOIN order_items oi ON o.id = oi.order_id
  LEFT JOIN shipping_info s ON o.id = s.order_id
+ LEFT JOIN payments p ON o.id = p.order_id
 WHERE o.buyer_id = $1 AND o.paid_at IS NOT NULL
 GROUP BY o.id, s.id
         `,
