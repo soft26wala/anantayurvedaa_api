@@ -1,7 +1,6 @@
 import express from "express";
-import { createOrder , verifyPayment } from "../controllers/payments.controllers.js";
+import { createOrder , verifyPayment, createCODOrder } from "../controllers/payments.controllers.js";
 import dotenv from "dotenv";
-import { createCODOrder } from "../controllers/cod.js"
 dotenv.config();
 
 const router = express.Router();
