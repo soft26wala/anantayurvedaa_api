@@ -1,15 +1,10 @@
-
 import db from "../database/db.js";
 import crypto from "crypto";
 import { createRazorpayInstance } from "../config/razorpay.config.js";
 
-
-
 export const createOrder = async (req, res) => {
   try {
     const { items } = req.body;
-
-
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "Items required" });
@@ -21,7 +16,7 @@ export const createOrder = async (req, res) => {
     for (let item of items) {
       const product = await db.query(
         "SELECT id, price, stock FROM products WHERE id = $1",
-        [item.productId]
+        [item.productId],
       );
 
       if (!product.rows.length) {
@@ -54,8 +49,6 @@ export const createOrder = async (req, res) => {
       receipt: `rcp_${Date.now()}`,
     });
 
-    
-
     return res.status(200).json({
       success: true,
       order,
@@ -72,29 +65,19 @@ export const createOrder = async (req, res) => {
   }
 };
 
-
-
-
 export const verifyPayment = async (req, res) => {
   try {
     const {
-  razorpay_order_id,
-  razorpay_payment_id,
-  razorpay_signature,
-  items = [],
-  user_id,
-  formData = {},
-} = req.body;
-
-    
-    
-    
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      items = [],
+      user_id,
+      formData = {},
+    } = req.body;
 
     // 🔐 signature verify
-    const hmac = crypto.createHmac(
-      "sha256",
-      process.env.RAZORPAY_KEY_SECRET
-    );
+    const hmac = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
 
     hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
 
@@ -111,10 +94,9 @@ export const verifyPayment = async (req, res) => {
     let total = 0;
 
     for (let item of items) {
-      
       const product = await db.query(
         "SELECT price FROM products WHERE id = $1",
-        [item.productId]
+        [item.productId],
       );
 
       const price = product.rows[0].price;
@@ -126,86 +108,75 @@ export const verifyPayment = async (req, res) => {
     const finalAmount = total + tax + shipping;
 
     // ✅ SAVE ORDER
-    const orderResult =  await db.query(
+    const orderResult = await db.query(
       `INSERT INTO orders 
       (buyer_id, total_price, tax_price, shipping_price, paid_at)
       VALUES ($1, $2, $3, $4, NOW())
       RETURNING id`,
-      [user_id, finalAmount, tax, shipping]
+      [user_id, finalAmount, tax, shipping],
     );
 
-const orderId = orderResult.rows[0].id;
+    const orderId = orderResult.rows[0].id;
 
+    for (let item of items) {
+      const product = await db.query(
+        "SELECT name, price, images->0->>'url' AS image FROM products WHERE id = $1",
+        [item.productId],
+      );
 
+      if (!product.rows.length) {
+        throw new Error("Product not found in verifyPayment");
+      }
 
-for (let item of items) {
-const product = await db.query(
-  "SELECT name, price, images->0->>'url' AS image FROM products WHERE id = $1",
-  [item.productId]
-);
+      const productData = product.rows[0];
 
-  if (!product.rows.length) {
-    throw new Error("Product not found in verifyPayment");
-  }
-
-  const productData = product.rows[0];
-
-  await db.query(
-    `INSERT INTO order_items 
+      await db.query(
+        `INSERT INTO order_items 
     (order_id, product_id, quantity, price, image, title)
     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [
-      orderId,
-      item.productId,
-      item.qty,
-      productData.price,
-      productData.image || null,
-      productData.name || "Product",
-    ]
-  );
-}
+        [
+          orderId,
+          item.productId,
+          item.qty,
+          productData.price,
+          productData.image || null,
+          productData.name || "Product",
+        ],
+      );
+    }
 
-
-
-await db.query(
-  `INSERT INTO shipping_info 
+    await db.query(
+      `INSERT INTO shipping_info 
   (order_id, full_name, state, city, country, address, pincode, phone) 
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 
-  [
-    orderId,
-    formData.fullName || "",
-    formData.state || "",
-    formData.city || "",
-    formData.country || "",
-    formData.address || "",
-    formData.zipCode || "",
-    formData.phone || ""
-  ]
-);
+      [
+        orderId,
+        formData.fullName || "",
+        formData.state || "",
+        formData.city || "",
+        formData.country || "",
+        formData.address || "",
+        formData.zipCode || "",
+        formData.phone || "",
+      ],
+    );
 
-
-await db.query(
-  `INSERT INTO payments (order_id, payment_type, payment_status, payment_intent_id)
+    await db.query(
+      `INSERT INTO payments (order_id, payment_type, payment_status, payment_intent_id)
    VALUES ($1, 'Online', 'Paid', $2)`,
-  [orderId, razorpay_payment_id]
-);
-
-
-
+      [orderId, razorpay_payment_id],
+    );
 
     return res.status(200).json({
       success: true,
       message: "Payment verified & order saved",
     });
-
-  } 
-   catch (error) {
-  console.error("verifyPayment failed at step:", error.message, error.stack);
-  res.status(500).json({ success: false, message: "Verification failed" });
-}
+  } catch (error) {
+    console.error("verifyPayment failed at step:", error.message, error.stack);
+    res.status(500).json({ success: false, message: "Verification failed" });
+  }
 };
-
 
 
 export const createCODOrder = async (req, res) => {
@@ -222,7 +193,7 @@ export const createCODOrder = async (req, res) => {
     for (let item of items) {
       const product = await db.query(
         "SELECT id, price, stock FROM products WHERE id = $1",
-        [item.productId]
+        [item.productId],
       );
 
       if (!product.rows.length) {
@@ -248,7 +219,7 @@ export const createCODOrder = async (req, res) => {
       (buyer_id, total_price, tax_price, shipping_price)
       VALUES ($1, $2, $3, $4)
       RETURNING id`,
-      [user_id, finalAmount, tax, shipping]
+      [user_id, finalAmount, tax, shipping],
     );
 
     const orderId = orderResult.rows[0].id;
@@ -257,7 +228,7 @@ export const createCODOrder = async (req, res) => {
     for (let item of items) {
       const product = await db.query(
         "SELECT name, price, images->0->>'url' AS image FROM products WHERE id = $1",
-        [item.productId]
+        [item.productId],
       );
 
       const p = product.rows[0];
@@ -273,7 +244,7 @@ export const createCODOrder = async (req, res) => {
           p.price,
           p.image || null,
           p.name || "Product",
-        ]
+        ],
       );
     }
 
@@ -290,8 +261,8 @@ export const createCODOrder = async (req, res) => {
         formData.country || "",
         formData.address || "",
         formData.zipCode || "",
-        formData.phone || ""
-      ]
+        formData.phone || "",
+      ],
     );
 
     // ✅ PAYMENT TABLE (COD)
@@ -299,15 +270,14 @@ export const createCODOrder = async (req, res) => {
       `INSERT INTO payments 
       (order_id, payment_type, payment_status)
       VALUES ($1, 'COD', 'Pending')`,
-      [orderId]
+      [orderId],
     );
 
     return res.status(200).json({
       success: true,
       message: "COD order placed",
-      orderId
+      orderId,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "COD order failed" });
