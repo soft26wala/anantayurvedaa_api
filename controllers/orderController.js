@@ -198,6 +198,8 @@ json_build_object(
  'pincode', s.pincode,
  'phone', s.phone
  ) AS shipping_info 
+   p.payment_type,
+  p.payment_status
  FROM orders o
  LEFT JOIN order_items oi ON o.id = oi.order_id
  LEFT JOIN shipping_info s ON o.id = s.order_id
