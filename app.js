@@ -22,7 +22,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL, process.env.DASHBOARD_URL, "http://localhost:5174", "http://localhost:5173", "https://anantayurvedaa.vercel.app"],
+    origin: [process.env.FRONTEND_URL, process.env.DASHBOARD_URL, "http://localhost:5174", "http://localhost:5173", "https://anantayurvedaa.vercel.app", "https://ecom-desbord.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
