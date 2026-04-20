@@ -36,9 +36,25 @@ export const createOrder = async (req, res) => {
     }
 
     // 🔥 backend calculation only
-    const tax = total * 0.18;
+    const SELLER_STATE = "PUNJAB";
+    const customerState = (formData.state || "").toUpperCase();
+
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+
+    if (customerState === SELLER_STATE) {
+      // Intra-state
+      cgst = total * 0.025;
+      sgst = total * 0.025;
+    } else {
+      // Inter-state
+      igst = total * 0.05;
+    }
+
+    const tax = cgst + sgst + igst;
     const shipping = total >= 400 ? 0 : 40;
-    const finalAmountin = total + tax + shipping;
+    const finalAmount = total + tax + shipping;
     const finalAmount = Math.round(finalAmountin);
 
     const razorpay = createRazorpayInstance();
@@ -103,17 +119,34 @@ export const verifyPayment = async (req, res) => {
       total += price * item.qty;
     }
 
-    const tax = total * 0.18;
-    const shipping = total >= 400 ? 0 : 40;
-    const finalAmount = total + tax + shipping;
+    // const tax = total * 0.18;
+    // const shipping = total >= 400 ? 0 : 40;
+    // const finalAmount = total + tax + shipping;
+
+    const SELLER_STATE = "PUNJAB";
+    const customerState = (formData.state || "").toUpperCase();
+
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+
+    if (customerState === SELLER_STATE) {
+      // Intra-state
+      cgst = total * 0.025;
+      sgst = total * 0.025;
+    } else {
+      // Inter-state
+      igst = total * 0.05;
+    }
+
+    const tax = cgst + sgst + igst;
 
     // ✅ SAVE ORDER
     const orderResult = await db.query(
       `INSERT INTO orders 
-      (buyer_id, total_price, tax_price, shipping_price, paid_at)
-      VALUES ($1, $2, $3, $4, NOW())
-      RETURNING id`,
-      [user_id, finalAmount, tax, shipping],
+  (buyer_id, total_price, tax_price, shipping_price, cgst, sgst, igst, paid_at)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+      [user_id, finalAmount, tax, shipping, cgst, sgst, igst],
     );
 
     const orderId = orderResult.rows[0].id;
@@ -178,7 +211,6 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
-
 export const createCODOrder = async (req, res) => {
   try {
     const { items = [], user_id, formData = {} } = req.body;
@@ -209,17 +241,34 @@ export const createCODOrder = async (req, res) => {
       total += price * item.qty;
     }
 
-    const tax = total * 0.18;
+    // const tax = total * 0.18;
+    // const finalAmount = total + tax + shipping;
+
+    const SELLER_STATE = "PUNJAB";
+    const customerState = (formData.state || "").toUpperCase();
+
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+
+    if (customerState === SELLER_STATE) {
+      // Intra-state
+      cgst = total * 0.025;
+      sgst = total * 0.025;
+    } else {
+      // Inter-state
+      igst = total * 0.05;
+    }
+
+    const tax = cgst + sgst + igst;
     const shipping = total >= 400 ? 0 : 40;
     const finalAmount = total + tax + shipping;
-
     // ✅ ORDER CREATE (paid_at NULL because COD)
     const orderResult = await db.query(
       `INSERT INTO orders 
-      (buyer_id, total_price, tax_price, shipping_price)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id`,
-      [user_id, finalAmount, tax, shipping],
+  (buyer_id, total_price, tax_price, shipping_price, cgst, sgst, igst, paid_at)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+      [user_id, finalAmount, tax, shipping, cgst, sgst, igst],
     );
 
     const orderId = orderResult.rows[0].id;
@@ -247,6 +296,9 @@ export const createCODOrder = async (req, res) => {
         ],
       );
     }
+
+    const shipping = total >= 400 ? 0 : 40;
+    const finalAmount = total + tax + shipping;
 
     // ✅ shipping info
     await db.query(
