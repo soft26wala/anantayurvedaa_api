@@ -296,8 +296,8 @@ export const createCODOrder = async (req, res) => {
       );
     }
 
-    const shipping = total >= 400 ? 0 : 40;
-    const finalAmount = total + tax + shipping;
+    // const shipping = total >= 400 ? 0 : 40;
+    // const finalAmount = total + tax + shipping;
 
     // ✅ shipping info
     await db.query(
