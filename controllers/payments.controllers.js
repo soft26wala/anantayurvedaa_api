@@ -54,8 +54,7 @@ export const createOrder = async (req, res) => {
 
     const tax = cgst + sgst + igst;
     const shipping = total >= 400 ? 0 : 40;
-    const finalAmount = total + tax + shipping;
-    const finalAmount = Math.round(finalAmountin);
+    const finalAmount = Math.round(total + tax + shipping);
 
     const razorpay = createRazorpayInstance();
 
