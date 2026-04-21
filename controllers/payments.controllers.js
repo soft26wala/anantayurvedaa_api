@@ -4,7 +4,7 @@ import { createRazorpayInstance } from "../config/razorpay.config.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const { items } = req.body;
+    const { items, formData = {} } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: "Items required" });
@@ -144,7 +144,7 @@ export const verifyPayment = async (req, res) => {
     const orderResult = await db.query(
       `INSERT INTO orders 
   (buyer_id, total_price, tax_price, shipping_price, cgst, sgst, igst, paid_at)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+  VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id`,
       [user_id, finalAmount, tax, shipping, cgst, sgst, igst],
     );
 
@@ -212,7 +212,8 @@ export const verifyPayment = async (req, res) => {
 
 export const createCODOrder = async (req, res) => {
   try {
-    const { items = [], user_id, formData = {} } = req.body;
+    // const { items = [], user_id, formData = {} } = req.body;
+    const { items, formData = {} } = req.body;
 
     if (!items.length) {
       return res.status(400).json({ error: "Items required" });
@@ -265,9 +266,10 @@ export const createCODOrder = async (req, res) => {
     // ✅ ORDER CREATE (paid_at NULL because COD)
     const orderResult = await db.query(
       `INSERT INTO orders 
-  (buyer_id, total_price, tax_price, shipping_price, cgst, sgst, igst, paid_at)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-      [user_id, finalAmount, tax, shipping, cgst, sgst, igst],
+  (buyer_id, total_price, tax_price, shipping_price, cgst, sgst, igst)
+  VALUES ($1, $2, $3, $4, $5, $6, $7)
+  RETURNING id`,
+  [user_id, finalAmount, tax, shipping, cgst, sgst, igst],
     );
 
     const orderId = orderResult.rows[0].id;
