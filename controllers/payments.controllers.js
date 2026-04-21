@@ -139,7 +139,8 @@ export const verifyPayment = async (req, res) => {
     }
 
     const tax = cgst + sgst + igst;
-
+    const shipping = total >= 400 ? 0 : 40;
+    const finalAmount = Math.round(total + tax + shipping);
     // ✅ SAVE ORDER
     const orderResult = await db.query(
       `INSERT INTO orders 
@@ -212,8 +213,8 @@ export const verifyPayment = async (req, res) => {
 
 export const createCODOrder = async (req, res) => {
   try {
-    // const { items = [], user_id, formData = {} } = req.body;
-    const { items, formData = {} } = req.body;
+    const { items = [], user_id, formData = {} } = req.body;
+    // const { items, formData = {} } = req.body;
 
     if (!items.length) {
       return res.status(400).json({ error: "Items required" });
@@ -262,7 +263,7 @@ export const createCODOrder = async (req, res) => {
 
     const tax = cgst + sgst + igst;
     const shipping = total >= 400 ? 0 : 40;
-    const finalAmount = total + tax + shipping;
+    const finalAmount = Math.round(total + tax + shipping);
     // ✅ ORDER CREATE (paid_at NULL because COD)
     const orderResult = await db.query(
       `INSERT INTO orders 
@@ -272,7 +273,13 @@ export const createCODOrder = async (req, res) => {
   [user_id, finalAmount, tax, shipping, cgst, sgst, igst],
     );
 
+
+    if (!orderResult.rows.length) {
+  throw new Error("Order insert failed");
+}
+
     const orderId = orderResult.rows[0].id;
+
 
     // ✅ order items insert
     for (let item of items) {
