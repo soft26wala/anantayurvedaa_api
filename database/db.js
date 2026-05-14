@@ -2,6 +2,7 @@ import pkg from "pg";
 const { Client } = pkg;
 
 const database = new Pool({ connectionString: process.env.DATABASE_URL }); 
+
 // const database = new Client({
 //   // user: "postgres",
 //   // host: "localhost",
